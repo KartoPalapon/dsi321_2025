@@ -1,6 +1,6 @@
-# DSI321_PROJECT
-
-โปรเจกต์นี้เป็นการพัฒนา .... Data Pipeline with Visualization  
+# Real-Time Data Pipeline with Visualization Project
+ 
+โปรเจกต์นี้เป็นการพัฒนา ....   
 โดยใช้ Prefect 3, Streamlit, Docker, และ Parquet ในการเก็บ.....แบบเรียลไทม์ พร้อมแสดงผลผ่าน dashboard  
 
 ---
