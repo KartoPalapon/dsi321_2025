@@ -1,38 +1,27 @@
-# DSI321
-# CI Status
-|  | |
-| - | :- |
-| Security | [![Bandit](https://github.com/Thanaraklee/dsi321_2025/actions/workflows/bandit.yml/badge.svg?branch=main)](https://github.com/Thanaraklee/dsi321_2025/actions/workflows/bandit.yml) [![CodeQL](https://github.com/Thanaraklee/dsi321_2025/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/Thanaraklee/dsi321_2025/actions/workflows/github-code-scanning/codeql) |
-| Dataset Validation | [![Validation](https://github.com/Thanaraklee/dsi321_2025/actions/workflows/validation.yml/badge.svg)](https://github.com/Thanaraklee/dsi321_2025/actions/workflows/validation.yml) |
+# Real-Time Data Pipeline with Visualization Project
+ 
+โปรเจกต์นี้เป็นการพัฒนา ....   
+โดยใช้ Prefect 3, Streamlit, Docker, และ Parquet ในการเก็บ.....แบบเรียลไทม์ พร้อมแสดงผลผ่าน dashboard  
 
-# Project Status
-| Module / Tool | Status |
-| - | :-: |
-| Modern Logging (Logging, Rich) | ✅ |
-| Web Scraping |✅|
-| Database(LakeFS) | ✅ |
-| Data Validation (Pydantic) | ✅ |
-| Web Interface (Streamlit) |        |
-| Orchestration (Prefect) |        |
+---
 
-# Prepare
-1. Create environment
-```bash
-python -m venv .venv
-```
+## วิธีการตั้งค่า Git Repository
 
-2. Activate your environment
-    - Windows
-        ```bash
-        source .venv/Scripts/activate
-        ```
-    - MacOS & Linux 
-        ```bash
-        source .venv/bin/activate
-        ```
-3. Run script
-```bash
-bash start.sh
-# or
-./start.sh
-```
+1. เปิด **VS Code** หรือ **Command Prompt/Terminal**
+2. เข้าไปที่โฟลเดอร์โปรเจกต์  
+   ```bash
+   cd "C:\Users\User\OneDrive\Documents\GitHub\dsi321_project"
+
+3. รันคำสั่งเพื่อสร้าง Git repository ใหม่
+   ```bash
+   git init
+
+4. ตั้งชื่อ remote repository ว่า **dsi321_project** 
+   ```bash
+   https://github.com/your-username/dsi321_project.git
+
+5. เชื่อม remote repository กับ local
+   ```bash
+   git remote add origin https://github.com/your-username/dsi321_project.git
+
+---
