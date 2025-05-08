@@ -2,14 +2,14 @@ services:
   lakefs_db:
     container_name: lakefs_db
     env_file:
-      - .env
+      - .venv
     image: treeverse/lakefs:1.7.0
     ports:
       - 8001:8000
     environment:
       LAKEFS_INSTALLATION_USER_NAME: "admin"
-      LAKEFS_INSTALLATION_ACCESS_KEY_ID: ${ACCESS_KEY}
-      LAKEFS_INSTALLATION_SECRET_ACCESS_KEY: ${SECRET_KEY}
+      LAKEFS_INSTALLATION_ACCESS_KEY_ID: palapon
+      LAKEFS_INSTALLATION_SECRET_ACCESS_KEY: karto
       LAKEFS_DATABASE_TYPE: "local"
       LAKEFS_AUTH_ENCRYPT_SECRET_KEY: "wait"
       LAKEFS_BLOCKSTORE_TYPE: "local"
