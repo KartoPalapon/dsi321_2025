@@ -21,6 +21,7 @@ def data_from_lakefs(lakefs_endpoint: str = "http://localhost:8001/"):
         storage_options=storage_options,
         engine='pyarrow',
     )
+    df.drop_duplicates(subset='tweetText', inplace=True)
     return df
 
 df = data_from_lakefs()

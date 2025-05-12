@@ -32,7 +32,6 @@ debugpy==1.8.14
 decorator==5.2.1
 Deprecated==1.2.18
 docker==7.1.0
--e git+https://github.com/Thanaraklee/dsi321_2025.git@5ea3ae3b14f6eda8f175906b92071a0aac705bec#egg=dsi321_2025
 exceptiongroup==1.2.2
 executing==2.2.0
 fastapi==0.115.12
