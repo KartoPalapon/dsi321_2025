@@ -8,6 +8,7 @@ from config.path_config import lakefs_s3_path
 
 st.title('DataFrame For Tweet Real-time Data📋')
 
+st.divider() 
 
 def data_from_lakefs(lakefs_endpoint: str = "http://localhost:8001/"):
     storage_options = {
@@ -23,6 +24,7 @@ def data_from_lakefs(lakefs_endpoint: str = "http://localhost:8001/"):
         engine='pyarrow',
     )
     df.drop_duplicates(subset='tweetText', inplace=True)
+    df.reset_index(drop=True, inplace=True)
     return df
 
 df = data_from_lakefs()
