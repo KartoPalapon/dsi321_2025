@@ -95,7 +95,7 @@ class XScraping:
             else:
                 logger.debug("No display name found for the article.")
 
-    async def scrape_all_tweet_texts(self, category: str, tag: str, tag_url: str, max_scrolls: int = 10, view_browser: bool = True) -> list[dict]:
+    async def scrape_all_tweet_texts(self, category: str, tag: str, tag_url: str, max_scrolls: int = 30, view_browser: bool = True) -> list[dict]:
         logger.debug(f"Starting scraping: {tag}")
         all_tweet_entries = []
         seen_pairs = set() 

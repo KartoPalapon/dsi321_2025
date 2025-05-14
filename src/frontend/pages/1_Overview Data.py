@@ -30,6 +30,15 @@ def data_from_lakefs(lakefs_endpoint: str = "http://localhost:8001/"):
 df = data_from_lakefs()
 st.dataframe(df)
 
+# --- Sidebar filters (ใช้ร่วมกันทั้งสองกราฟ) ---
+with st.sidebar:
+        # ปุ่ม Refresh
+    if st.button("🔄 Refresh Data"):
+        df = data_from_lakefs()
+        st.success("โหลดข้อมูลใหม่เรียบร้อย ✅")
+    else:
+        df = data_from_lakefs()
+
 with st.expander("📋 Metadata of Tweet DataFrame"):
     st.markdown("""
 | Column Name   | Description |
