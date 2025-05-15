@@ -2,7 +2,6 @@ import os
 import pandas as pd
 from pathlib import Path
 from hashlib import sha256
-import json
 from datetime import datetime
 import streamlit as st
 import sys
@@ -10,7 +9,7 @@ import ast
 import plotly.express as px
 
 # ---------- PATH CONFIG ----------
-sys.path.append(r'C:\dsi321_2025')
+sys.path.append(r'C:\dsi321_2025')  # เปลี่ยนให้ตรงกับเครื่องคุณ
 from config.path_config import lakefs_s3_path, tags
 from config.message_classifier import classify_messages
 
@@ -48,8 +47,7 @@ def data_from_lakefs(lakefs_endpoint: str = "http://localhost:8001/"):
 
 # ---------- MAIN STREAMLIT APP ----------
 st.title("📊 Sentiment Dashboard")
-
-st.divider() 
+st.divider()
 
 # Sidebar
 with st.sidebar:
@@ -86,7 +84,6 @@ with st.sidebar:
                 prev_stop = stop
                 rows = df_dict[start:stop]
                 st.write(f"Processing rows {start} to {stop}")
-
                 response = classify_messages(rows)
                 all_response.append(response)
 
@@ -107,64 +104,67 @@ with st.sidebar:
                 f.write("\n".join(new_hashes) + "\n")
 
             st.success("✅ Data refreshed successfully!")
-
         else:
             st.success("✅ No new tweets to process.")
-    
-    st.markdown("---")  # 🔥 เส้นแบ่งเดียว
+
+    st.markdown("---")
 
     # Load data for filter
     if sentiment_file.exists():
         sentiment_df = pd.read_csv(sentiment_file)
 
-        # แปลง string list เป็น list จริง
         for col in ['topic', 'subtopic', 'sentiment']:
             sentiment_df[col] = sentiment_df[col].apply(lambda x: ast.literal_eval(x) if pd.notnull(x) else [])
 
-        # ดึงค่า unique ทั้งหมด
         all_topics = sorted({item for sublist in sentiment_df['topic'] for item in sublist})
         all_subtopics = sorted({item for sublist in sentiment_df['subtopic'] for item in sublist})
         all_sentiments = sorted({item for sublist in sentiment_df['sentiment'] for item in sublist})
 
-        selected_topic = st.selectbox("Topic", ["All"] + all_topics)
-        selected_subtopic = st.selectbox("Subtopic", ["All"] + all_subtopics)
-        selected_sentiment = st.selectbox("Sentiment", ["All"] + all_sentiments)
+        st.markdown("### 🎯 Filter Options")
 
-# Main display
+        # Topic Filter
+        select_all_topics = st.checkbox("Select All Topics", value=True)
+        selected_topics = all_topics if select_all_topics else st.multiselect("Topic", all_topics)
+
+        # Subtopic Filter
+        select_all_subtopics = st.checkbox("Select All Subtopics", value=True)
+        selected_subtopics = all_subtopics if select_all_subtopics else st.multiselect("Subtopic", all_subtopics)
+
+        # Sentiment Filter
+        select_all_sentiments = st.checkbox("Select All Sentiments", value=True)
+        selected_sentiments = all_sentiments if select_all_sentiments else st.multiselect("Sentiment", all_sentiments)
+
+# ---------- Main Display ----------
 if sentiment_file.exists():
     sentiment_df = pd.read_csv(sentiment_file)
-    sentiment_df = sentiment_df.drop(columns=['index', 'tweetText'])
+    sentiment_df = sentiment_df.drop(columns=['index', 'tweetText'], errors='ignore')
     cols_to_check = ['topic', 'subtopic', 'sentiment']
 
-# ลบ NaN ก่อน
     sentiment_df = sentiment_df.dropna(subset=cols_to_check)
-
-# ลบช่องว่าง หรือ [] string
     sentiment_df = sentiment_df[~sentiment_df[cols_to_check].isin(['', '[]', 'nan', 'None']).any(axis=1)].reset_index(drop=True)
 
-    for col in ['topic', 'subtopic', 'sentiment']:
+    for col in cols_to_check:
         sentiment_df[col] = sentiment_df[col].apply(lambda x: ast.literal_eval(x) if pd.notnull(x) else [])
 
-    # Filter data ตาม sidebar
+    # Apply filters
     df_filtered = sentiment_df.copy()
-    if selected_topic != "All":
-        df_filtered = df_filtered[df_filtered['topic'].apply(lambda x: selected_topic in x)]
-    if selected_subtopic != "All":
-        df_filtered = df_filtered[df_filtered['subtopic'].apply(lambda x: selected_subtopic in x)]
-    if selected_sentiment != "All":
-        df_filtered = df_filtered[df_filtered['sentiment'].apply(lambda x: selected_sentiment in x)]
+    if selected_topics:
+        df_filtered = df_filtered[df_filtered['topic'].apply(lambda x: any(t in x for t in selected_topics))]
+    if selected_subtopics:
+        df_filtered = df_filtered[df_filtered['subtopic'].apply(lambda x: any(s in x for s in selected_subtopics))]
+    if selected_sentiments:
+        df_filtered = df_filtered[df_filtered['sentiment'].apply(lambda x: any(s in x for s in selected_sentiments))]
 
+    # Display
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        # Pie chart
         if not df_filtered.empty:
             sentiment_counts = {}
             for s_list in df_filtered['sentiment']:
                 for s in s_list:
                     sentiment_counts[s] = sentiment_counts.get(s, 0) + 1
             pie_df = pd.DataFrame({'Sentiment': sentiment_counts.keys(), 'Count': sentiment_counts.values()})
-
             fig = px.pie(pie_df, names='Sentiment', values='Count', title='Sentiment Distribution')
             st.plotly_chart(fig, use_container_width=True)
         else:

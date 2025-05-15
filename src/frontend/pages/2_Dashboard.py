@@ -5,12 +5,13 @@ import plotly.graph_objects as go
 import altair as alt
 from config.path_config import lakefs_s3_path
 
+# ---------- CONFIG ----------
 st.set_page_config(page_title="Dashboard 📊", layout="wide")
-st.title("📊 Dashboard")
+st.title("📊 Twitter(X) Dashboard")
+st.divider()
 
-st.divider() 
-
-# โหลดข้อมูลจาก lakeFS
+# ---------- LOAD DATA ----------
+@st.cache_data(show_spinner="📥 กำลังโหลดข้อมูลจาก LakeFS ...")
 def data_from_lakefs(lakefs_endpoint: str = "http://localhost:8001/"):
     storage_options = {
         "key": os.getenv("ACCESS_KEY"),
@@ -27,44 +28,59 @@ def data_from_lakefs(lakefs_endpoint: str = "http://localhost:8001/"):
     df.drop_duplicates(subset='tweetText', inplace=True)
     df.reset_index(drop=True, inplace=True)
     return df
+
 df = data_from_lakefs()
 
-
-# แปลงเวลาสำหรับ filter
+# ---------- CLEAN & TRANSFORM ----------
 df['scrapeTime'] = pd.to_datetime(df['scrapeTime'], errors='coerce')
-df = df.dropna(subset=['scrapeTime', 'tag', 'category'])
+df['postTimeRaw'] = pd.to_datetime(df['postTimeRaw'], errors='coerce')
+df = df.dropna(subset=['scrapeTime', 'postTimeRaw', 'tag', 'category'])
+df['post_date'] = df['postTimeRaw'].dt.date  # เพิ่มคอลัมน์วันที่อย่างเดียว (ไม่รวมเวลา)
 
-# --- Sidebar filters (ใช้ร่วมกันทั้งสองกราฟ) ---
+# ---------- SIDEBAR FILTERS ----------
 with st.sidebar:
     st.subheader("🔎 Filter Options")
 
+    # Category Filter
     available_categories = sorted(df['category'].dropna().unique())
     category_options = ["All"] + available_categories
     selected_category = st.selectbox("Select Category", category_options)
 
+    # Tag Filter
     available_tags = sorted(df['tag'].dropna().unique())
-    selected_tags = st.multiselect("Filter by Tag", available_tags, default=available_tags)
-    
-        # ปุ่ม Refresh
+    select_all_tags = st.checkbox("Select All Tags", value=True)
+    selected_tags = available_tags if select_all_tags else st.multiselect("Filter by Tag", available_tags)
+
+    # Date Filter
+    min_date = df['post_date'].min()
+    max_date = df['post_date'].max()
+    date_range = st.date_input("📅 เลือกช่วงวันที่ (จาก postTimeRaw)", [min_date, max_date], min_value=min_date, max_value=max_date)
+
+    # View mode: รวม หรือ แยก category
+    view_mode = st.radio("🧩 เลือกรูปแบบการดูกราฟ", ["รวมทั้งหมด", "แยกตาม Category"])
+
+    # Refresh Button
     if st.button("🔄 Refresh Data"):
         df = data_from_lakefs()
         st.success("โหลดข้อมูลใหม่เรียบร้อย ✅")
-    else:
-        df = data_from_lakefs()
 
-# --- Filtered Data ---
-filtered_df = df[df['tag'].isin(selected_tags)]
+# ---------- APPLY FILTER ----------
+filtered_df = df[
+    (df['tag'].isin(selected_tags)) &
+    (df['post_date'] >= date_range[0]) &
+    (df['post_date'] <= date_range[1])
+]
 if selected_category != "All":
     filtered_df = filtered_df[filtered_df['category'] == selected_category]
 
-# --- กราฟ 1: จำนวน tag ต่อ category (Plotly) ---
+# ---------- GRAPH 1: BAR CHART ----------
+st.subheader("📌 จำนวนของ Hashtag (#) แยกตาม Category")
+
 tag_counts = filtered_df.groupby(['category', 'tag']).size().reset_index(name='count')
 
 if not tag_counts.empty:
     fig = go.Figure()
-    categories = tag_counts['category'].unique()
-
-    for cat in categories:
+    for cat in tag_counts['category'].unique():
         data = tag_counts[tag_counts['category'] == cat]
         fig.add_trace(go.Bar(
             x=data['tag'],
@@ -75,45 +91,56 @@ if not tag_counts.empty:
         ))
 
     fig.update_layout(
-        title='📌 กราฟแสดงจำนวนของ Hashtag (#) แยกตาม Category',
         xaxis_title='Hashtag',
-        yaxis_title='Number of Twitter(X)',
+        yaxis_title='จำนวนโพสต์ (Tweet)',
         barmode='group',
         bargap=0.2,
-        width=900,
-        height=400
+        width=1000,
+        height=450
     )
     st.plotly_chart(fig, use_container_width=True)
 else:
-    st.warning("ไม่พบข้อมูลสำหรับการกรองนี้ 🚨")
+    st.warning("ไม่พบข้อมูลสำหรับเงื่อนไขที่เลือก 🚨")
 
+# ---------- GRAPH 2: LINE CHART ----------
+st.subheader("📈 แนวโน้มจำนวนโพสต์จาก Twitter(X) รายวัน")
 
-# --- กราฟ Line: Tweet Volume ตาม scrapeTime (รวมทุก 15 นาที และแยก category) ---
-# ปัดเวลา scrapeTime ขึ้นเป็นช่วง 15 นาที
-df['scrape_interval'] = df['scrapeTime'].dt.floor('15min') + pd.Timedelta(minutes=15)
+if view_mode == "รวมทั้งหมด":
+    line_data = (
+        filtered_df.groupby('post_date')
+        .size()
+        .reset_index(name='tweet_count')
+    )
 
-# Filter ตาม tag
-filtered_df = df[df['tag'].isin(selected_tags)]
-
-# รวมจำนวน tweet ต่อ category ต่อช่วงเวลา 15 นาที
-agg_df = (
-    filtered_df.groupby(['scrape_interval', 'category'])
-    .size()
-    .reset_index(name='tweet_count')
-)
-
-if not agg_df.empty:
-    line_chart = alt.Chart(agg_df).mark_line(point=True).encode(
-        x=alt.X('scrape_interval:T', title='Scrape Interval (15 min bins)'),
-        y=alt.Y('tweet_count:Q', title='Number of Twitter(X)'),
-        color=alt.Color('category:N', legend=alt.Legend(title="Category")),
-        tooltip=['scrape_interval:T', 'tweet_count:Q', 'category:N']
+    chart = alt.Chart(line_data).mark_line(point=True).encode(
+        x=alt.X('post_date:T', title='วันที่', axis=alt.Axis(format='%d %b')),
+        y=alt.Y('tweet_count:Q', title='จำนวนโพสต์'),
+        tooltip=['post_date:T', 'tweet_count:Q']
     ).properties(
-        title="📌 กราฟแสดงจำนวนของข้อมูลที่ได้จาก Twitter(X) ตามแต่ละช่วงเวลา",
-        width=900,
-        height=450
+        width=1000,
+        height=450,
+        title="📊 จำนวนโพสต์รวมรายวัน"
     ).interactive()
 
-    st.altair_chart(line_chart, use_container_width=True)
 else:
-    st.warning("ไม่พบข้อมูล scrape สำหรับช่วงที่เลือก 👀")
+    line_data = (
+        filtered_df.groupby(['post_date', 'category'])
+        .size()
+        .reset_index(name='tweet_count')
+    )
+
+    chart = alt.Chart(line_data).mark_line(point=True).encode(
+        x=alt.X('post_date:T', title='วันที่', axis=alt.Axis(format='%d %b')),
+        y=alt.Y('tweet_count:Q', title='จำนวนโพสต์'),
+        color=alt.Color('category:N', title='Category'),
+        tooltip=['post_date:T', 'tweet_count:Q', 'category:N']
+    ).properties(
+        width=1000,
+        height=450,
+        title="📊 จำนวนโพสต์แยกตาม Category รายวัน"
+    ).interactive()
+
+if not line_data.empty:
+    st.altair_chart(chart, use_container_width=True)
+else:
+    st.warning("ไม่พบข้อมูลในช่วงเวลานี้ 👀")
