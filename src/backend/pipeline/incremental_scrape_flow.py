@@ -92,10 +92,10 @@ if __name__ == "__main__":
         source=Path(__file__).parent,
         entrypoint="./incremental_scrape_flow.py:scrape_flow_wrapper",
     ).deploy(
-        name="scrape-x-every-15m",
+        name="scrape-x-every-10m",
         work_pool_name="x-worker",
         schedule=Interval(
-            timedelta(minutes=15),
+            timedelta(minutes=10),
             timezone="Asia/Bangkok"
         )
     )
