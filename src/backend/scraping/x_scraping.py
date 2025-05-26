@@ -42,7 +42,7 @@ class XScraping:
             if await self.is_article_present(page):
                 return True
             logger.warning(f"Retry {retry+1}/{max_retries} - Waiting before next try...")
-            await asyncio.sleep(random.uniform(6.0, 12.0))
+            await asyncio.sleep(random.uniform(10.0, 22.0))
         return False
 
     async def is_article_present(self, page) -> bool:
@@ -58,13 +58,25 @@ class XScraping:
     async def extract_articles(self, category: str, tag: str, count_tweets: int, articles: list, seen_pairs: set, all_tweet_entries: list) -> None:
         for i, article in enumerate(articles):
             displayName = await article.query_selector("[data-testid='User-Name']")
+            if not displayName:
+                logger.debug("No display name found for the article.")
+                continue
+            link_elements = await displayName.query_selector_all("a")
+            if len(link_elements) <= 2:
+                logger.debug("Not enough link elements in displayName.")
+                continue
+            link_element = link_elements[2]
+            tweet_link = await link_element.get_attribute("href")
             if displayName:
                 spans = await displayName.query_selector_all("span")
                 time_tag = await displayName.query_selector("time")
-                asyncio.sleep(random.uniform(1.0, 7.5))
+                asyncio.sleep(random.uniform(5.0, 11.5))
                 tweetText_tag = await article.query_selector("[data-testid='tweetText']")
                 if len(spans) > 3 and time_tag and tweetText_tag:
-                    userName = await spans[3].text_content()
+                    if len(spans) == 4:
+                        userName = await spans[2].text_content()
+                    else:
+                        userName = await spans[3].text_content()
                     userName = userName.strip()
                     dateTime = await time_tag.get_attribute("datetime")
                     tweetText = await tweetText_tag.text_content()
@@ -83,7 +95,8 @@ class XScraping:
                                     "username": userName,
                                     "tweetText": tweetText,
                                     "postTimeRaw": dt_naive,
-                                    "scrapeTime": now.strftime("%Y-%m-%dT%H:%M:%S")
+                                    "scrapeTime": now.strftime("%Y-%m-%dT%H:%M:%S"),
+                                    "tweet_link": f"https://x.com{tweet_link}"
                                 })
                                 count_tweets += 1
                                 logger.debug(f"Scraped tweet {count_tweets} - {tag}")
@@ -95,7 +108,7 @@ class XScraping:
             else:
                 logger.debug("No display name found for the article.")
 
-    async def scrape_all_tweet_texts(self, category: str, tag: str, tag_url: str, max_scrolls: int = 10, view_browser: bool = True) -> list[dict]:
+    async def scrape_all_tweet_texts(self, category: str, tag: str, tag_url: str, max_scrolls: int = 1, view_browser: bool = True) -> list[dict]:
         logger.debug(f"Starting scraping: {tag}")
         all_tweet_entries = []
         seen_pairs = set() 
@@ -108,7 +121,7 @@ class XScraping:
             )
             page = await context.new_page()
             await page.goto(tag_url)
-            await asyncio.sleep(random.uniform(2, 20.0))
+            await asyncio.sleep(random.uniform(10, 20.0))
 
             # Check if the page has loaded tweets
             if not await self.wait_for_articles_with_retry(page):
@@ -119,10 +132,10 @@ class XScraping:
             now_height = 0
             for i in range(max_scrolls):
                 if i > 0:
-                    scroll_distance = random.randint(300, 800)
+                    scroll_distance = random.randint(2800, 3800)
                     await page.evaluate(f"window.scrollBy(0, {scroll_distance});")
                     logger.debug(f"Scroll attempt {i+1}/{max_scrolls} - Scrolling by {scroll_distance}px")
-                    await asyncio.sleep(random.uniform(5, 17))
+                    await asyncio.sleep(random.uniform(10, 17))
                     # Check if the page has loaded tweets
                     if not await self.wait_for_articles_with_retry(page):
                         logger.warning(f"No articles found on scroll {i+1}")
@@ -130,7 +143,7 @@ class XScraping:
                 
                 logger.debug(f"Scroll attempt {i+1}/{max_scrolls} - {tag}")
                 new_height = await page.evaluate("document.body.scrollHeight")
-                await asyncio.sleep(random.uniform(1, 14))
+                await asyncio.sleep(random.uniform(9, 14))
                 logger.debug(f"Now height: {now_height} - New height after scroll: {new_height}")
                 
                 if new_height == now_height:
@@ -158,6 +171,7 @@ class XScraping:
         all_tweet['username'] = all_tweet['username'].astype('string')
         all_tweet['tweetText'] = all_tweet['tweetText'].astype('string')
         all_tweet['tag'] = all_tweet['tag'].astype('string')
+        all_tweet['tweet_link'] = all_tweet['tweet_link'].astype('string')
 
         all_tweet['year'] = all_tweet['postTimeRaw'].dt.year
         all_tweet['month'] = all_tweet['postTimeRaw'].dt.month
@@ -176,13 +190,13 @@ async def main():
     tags = {
         "ธรรมศาสตร์": [
             "#ธรรมศาสตร์ช้างเผือก",
-            "#TCAS",
-            "#รับตรง",
-            "#ทีมมธ",
-            "#มธ", 
-            "#dek70", 
-            "#มอท่อ",
-            "#TU89",
+            # "#TCAS",
+            # "#รับตรง",
+            # "#ทีมมธ",
+            # "#มธ", 
+            # "#dek70", 
+            # "#มอท่อ",
+            # "#TU89",
         ],
         # "คณะนิติศาสตร์":[
         #     # "#นิติศาสตร์",
@@ -367,7 +381,7 @@ async def main():
     is_valid = True
     if is_valid:
         os.makedirs('data', exist_ok=True)
-        data.to_csv('data/tweet_data.csv', index=False)
+        data.to_csv('data/tweet_data_test.csv', index=False)
         logger.info("CSV file saved.")
         x_scraping.load_to_lakefs(data=data, lakefs_endpoint="http://localhost:8001")
 
