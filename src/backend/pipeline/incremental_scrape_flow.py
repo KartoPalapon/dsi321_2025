@@ -17,6 +17,7 @@ from config.path_config import tags, lakefs_s3_path_ml
 # Import wordcloud 
 from src.backend.ml.wordcloud import WordCloud
 
+
 logger = LoggingConfig(level="DEBUG", level_console="INFO").get_logger()
 
 @task(name="generate word cloud")

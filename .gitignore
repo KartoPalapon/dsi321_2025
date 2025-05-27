@@ -1,3 +1,5 @@
+data/lakefs/
+
 config/auth/
 tmp/
 # Byte-compiled / optimized / DLL files

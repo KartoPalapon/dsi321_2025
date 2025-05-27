@@ -1,10 +1,6 @@
 [project]
 name = "dsi321_2025"
 version = "1.0.0"
-dependencies = [
-    "google-genai>=1.14.0",
-    "wordcloud>=1.9.4",
-]
 
 
 [tool.setuptools.packages.find]
