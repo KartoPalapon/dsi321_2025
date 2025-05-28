@@ -75,6 +75,51 @@ This project enforces a strict schema and data validation protocol to ensure dat
 | month        | int32                |
 | day          | int32                |
 
+### Data Type Comparison (`df.dtypes == df_verlify.dtypes`)
+
+| Column      | Match |
+|-------------|-------|
+| category    | ✅ True |
+| tag         | ✅ True |
+| username    | ✅ True |
+| tweetText   | ✅ True |
+| timestamp   | ✅ True |
+| scrapeTime  | ✅ True |
+| tweet_link  | ✅ True |
+| index       | ✅ True |
+| year        | ✅ True |
+| month       | ✅ True |
+| day         | ✅ True |
+
+### Record Count Check (`len(df_verlify) > 1000`)
+
+> ✅ **Result: True**  
+> The dataset contains more than 1,000 records.
+
+### Duplicate Records Check (`df_verlify.duplicated().sum()`)
+
+> ✅ **Result: 0**  
+> No duplicate records found in the dataset.
+
+### Null Values Check (`df_verlify.isnull().sum()`)
+
+| Column      | Null Count |
+|-------------|------------|
+| category    | 0          |
+| tag         | 0          |
+| username    | 0          |
+| tweetText   | 0          |
+| timestamp   | 0          |
+| scrapeTime  | 0          |
+| tweet_link  | 0          |
+| index       | 0          |
+| year        | 0          |
+| month       | 0          |
+| day         | 0          |
+
+> ✅ **Result:** No null values in any columns.
+
+
 ### Schema Validation Summary
 
 | Check                                  | Result   |
